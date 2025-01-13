@@ -7,7 +7,7 @@ const { patreonOauthToken } = require('./tool-utils');
 const HtmlToMd = require('@joplin/lib/HtmlToMd').default;
 const { dirname, filename, basename } = require('@joplin/lib/path-utils');
 const markdownUtils = require('@joplin/lib/markdownUtils').default;
-const mimeUtils = require('@joplin/lib/mime-utils.js').mime;
+const mimeUtils = require('@joplin/lib/mime-utils.js');
 const { mimeTypeFromHeaders } = require('@joplin/lib/net-utils');
 const shim = require('@joplin/lib/shim').default;
 const moment = require('moment');
@@ -16,9 +16,10 @@ const { shimInit } = require('@joplin/lib/shim-init-node.js');
 
 shimInit();
 
-const blogDir = `${dirname(__dirname)}/readme/blog`;
+const rootDir = dirname(dirname(__dirname));
+const blogDir = `${rootDir}/readme/news`;
 const tempDir = `${__dirname}/temp`;
-const imageDir = `${dirname(__dirname)}/readme/blog/images`;
+const imageDir = `${rootDir}/Assets/WebsiteAssets/images/news`;
 
 const htmlToMd = new HtmlToMd();
 
@@ -60,7 +61,19 @@ async function createPostFile(post, filePath) {
 		const imageUrl = imageUrls[i];
 		const imageFilename = `${filename(filePath)}_${i}`;
 		const imagePath = `${tempDir}/${imageFilename}`;
-		const response = await shim.fetchBlob(imageUrl, { path: imagePath, maxRetry: 1 });
+
+		let response = null;
+		try {
+			response = await shim.fetchBlob(imageUrl, { path: imagePath, maxRetry: 1 });
+		} catch (error) {
+			console.warn(`Could not fetch image: ${imageUrl}`);
+			continue;
+		}
+
+		if (!response.ok) {
+			console.warn(`Could not fetch image: ${imageUrl}`);
+			continue;
+		}
 
 		const mimeType = mimeTypeFromHeaders(response.headers);
 		let ext = 'jpg';
@@ -76,24 +89,26 @@ async function createPostFile(post, filePath) {
 	}
 
 	for (const imageUrl in imageUrlsToFiles) {
-		const r = `images/${basename(imageUrlsToFiles[imageUrl])}`;
+		const r = `https://raw.githubusercontent.com/laurent22/joplin/dev/Assets/WebsiteAssets/images/news/${basename(imageUrlsToFiles[imageUrl])}`;
 		contentMd = contentMd.replace(new RegExp(pregQuote(imageUrl), 'g'), r);
 	}
 
-	const fileMd = [`# ${post.title}`];
+	const fileMd = [];
+	fileMd.push('---');
+	fileMd.push(`created: ${post.published_at}`);
+	fileMd.push(`source_url: https://www.patreon.com${post.url}`);
+	fileMd.push('---');
+	fileMd.push('');
+	fileMd.push(`# ${post.title}`);
 	fileMd.push('');
 	fileMd.push(contentMd);
-	fileMd.push('');
-	fileMd.push('* * *');
-	fileMd.push('');
-	fileMd.push(`url: https://www.patreon.com${post.url}`);
-	fileMd.push(`published_at: ${post.published_at}`);
+
 	await fs.writeFile(filePath, fileMd.join('\n'));
 }
 
 async function createPostFiles(posts) {
 	for (const post of posts) {
-		const filename = `${moment(post.published_at).format('YYYYMMDD-HHmmss')}.md`;
+		const filename = `${moment(post.published_at).utc().format('YYYYMMDD-HHmmss')}.md`;
 		await createPostFile(post, `${blogDir}/${filename}`);
 	}
 }

@@ -9,12 +9,11 @@ import ResourceService from '../services/ResourceService';
 
 const testImagePath = `${supportDir}/photo.jpg`;
 
-describe('models/Folder.sharing', function() {
+describe('models/Folder.sharing', () => {
 
-	beforeEach(async (done) => {
+	beforeEach(async () => {
 		await setupDatabaseAndSynchronizer(1);
 		await switchClient(1);
-		done();
 	});
 
 	it('should apply the share ID to all children', (async () => {
@@ -312,11 +311,14 @@ describe('models/Folder.sharing', function() {
 			expect(resource.share_id).toBe('');
 		}
 
+		const previousBlobUpdatedTime = (await Resource.load(resourceId)).blob_updated_time;
+		await msleep(1);
 		await Folder.updateAllShareIds(resourceService);
 
 		{
 			const resource: ResourceEntity = await Resource.load(resourceId);
 			expect(resource.share_id).toBe(note1.share_id);
+			expect(resource.blob_updated_time).toBeGreaterThan(previousBlobUpdatedTime);
 		}
 
 		await Note.save({ id: note1.id, parent_id: folder2.id });
@@ -413,11 +415,6 @@ describe('models/Folder.sharing', function() {
 		note2 = await Note.load(note2.id);
 		note3 = await Note.load(note3.id);
 		note4 = await Note.load(note4.id);
-
-		console.info(note1.body);
-		console.info(note2.body);
-		console.info(note3.body);
-		console.info(note4.body);
 
 		expect(note1.body).not.toBe(note2.body);
 		expect(note1.body).not.toBe(note3.body);

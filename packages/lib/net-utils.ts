@@ -10,6 +10,7 @@ export async function ip() {
 	return ip.ip;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
 export async function findAvailablePort(tcpPortUsed: any, possiblePorts: number[], extraRandomPortsToTry = 20) {
 	for (let i = 0; i < extraRandomPortsToTry; i++) {
 		possiblePorts.push(Math.floor(8000 + Math.random() * 2000));
@@ -26,7 +27,8 @@ export async function findAvailablePort(tcpPortUsed: any, possiblePorts: number[
 	return port;
 }
 
-export async function mimeTypeFromHeaders(headers: Record<string, any>) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Old code before rule was applied
+export function mimeTypeFromHeaders(headers: Record<string, any>) {
 	if (!headers || !headers['content-type']) return null;
 
 	const splitted = headers['content-type'].split(';');
